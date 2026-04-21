@@ -95,7 +95,7 @@
   .cdots{display:flex;gap:2px;flex-wrap:wrap;margin-top:1px}
   .cdot{width:7px;height:7px;border-radius:50%;border:0.5px solid var(--border1);flex-shrink:0}
   .empty{grid-column:1/-1;text-align:center;padding:3rem 1rem;font-size:14px;color:var(--text2)}
-  .fab-wrap{padding:1rem 1rem 0;padding-bottom:max(1.25rem,env(safe-area-inset-bottom,1.25rem))}
+  .fab-wrap{padding:1rem 1rem 0;padding-bottom:2.5rem}
   @media(min-width:900px){.fab-wrap{padding:1rem 1.5rem .5rem}}
   .fab{width:100%;padding:13px;border-radius:var(--radius-lg);background:var(--p600);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
   @media(min-width:900px){.fab{max-width:260px}}
@@ -104,7 +104,7 @@
   /* Sheets */
   .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
   .overlay.open{display:flex}
-  .sheet{background:var(--bg);border-radius:20px 20px 0 0;padding:1.25rem 1rem 1rem;padding-bottom:max(2rem,env(safe-area-inset-bottom,2rem));width:100%;max-height:92vh;overflow-y:auto}
+  .sheet{background:var(--bg);border-radius:20px 20px 0 0;padding:1.25rem 1rem 1rem;padding-bottom:3rem;width:100%;max-height:92vh;overflow-y:auto}
   @media(min-width:900px){
     .overlay{align-items:center}
     .sheet{border-radius:var(--radius-lg);max-width:560px;max-height:88vh}
@@ -349,30 +349,28 @@ const saveTags=()=>LS.set('tc_tags',TAGS);
 const saveItems=()=>LS.set('tc_items',items);
 const saveBoards=()=>LS.set('tc_boards',boards);
 
-// Google Sheets sync via Apps Script
-// Uses no-cors mode — Apps Script needs to return CORS headers
+// Google Sheets sync — uses GET with data param to avoid CORS issues
 async function syncSave(){
   if(!scriptUrl)return;
   try{
-    await fetch(scriptUrl,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'saveItems',items,boards})
-    });
-  }catch(e){console.warn('Sync failed',e)}
+    const data=encodeURIComponent(JSON.stringify({items,boards}));
+    // Use an image src trick to fire a GET request without CORS restrictions
+    const img=new Image();
+    img.src=scriptUrl+'?action=save&data='+data+'&t='+Date.now();
+  }catch(e){console.warn('Sync save failed',e)}
 }
 
 async function syncLoad(){
   if(!scriptUrl)return;
   try{
-    const r=await fetch(scriptUrl+'?action=getAll&t='+Date.now(),{mode:'cors'});
+    const r=await fetch(scriptUrl+'?action=load&t='+Date.now());
     if(!r.ok)return;
-    const d=await r.json();
-    if(d.items){items=d.items;saveItems()}
-    if(d.boards){boards=d.boards;saveBoards()}
-    renderApp();
-  }catch(e){console.warn('Load sync failed',e)}
+    const text=await r.text();
+    const d=JSON.parse(text);
+    if(d.items&&Array.isArray(d.items)){items=d.items;saveItems()}
+    if(d.boards&&Array.isArray(d.boards)){boards=d.boards;saveBoards()}
+    renderApp();renderSidebar();
+  }catch(e){console.warn('Sync load failed',e)}
 }
 
 // Render
