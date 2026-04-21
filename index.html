@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Teri's Closet">
+<title>Teri's Closet</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --p50:#EEEDFE;--p100:#CECBF6;--p600:#534AB7;--p800:#3C3489;
+    --t50:#E1F5EE;--t600:#0F6E56;--t800:#085041;
+    --bg:#ffffff;--bg2:#f5f5f4;--bg3:#eeece8;
+    --text1:#1a1a1a;--text2:#6b6b6b;--text3:#a0a0a0;
+    --border1:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.15);
+    --radius-md:8px;--radius-lg:12px;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1c1c1e;--bg2:#2c2c2e;--bg3:#3a3a3c;
+      --text1:#f2f2f7;--text2:#aeaeb2;--text3:#6d6d72;
+      --border1:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+    }
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text1);min-height:100vh}
+  /* Desktop layout: sidebar + main */
+  .app-shell{display:flex;min-height:100vh}
+  .sidebar{display:none}
+  .main-content{flex:1;min-width:0}
+  @media(min-width:900px){
+    .sidebar{display:flex;flex-direction:column;width:220px;min-width:220px;border-right:0.5px solid var(--border1);padding:1.5rem 1.25rem;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--bg)}
+    .sidebar-title{font-size:20px;font-weight:700;color:var(--text1);margin-bottom:1.5rem}
+    .sidebar-sync{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-bottom:1rem;padding:.5rem .75rem;background:var(--bg2);border-radius:var(--radius-md);cursor:pointer}
+    .sidebar-nav{display:flex;flex-direction:column;gap:4px;margin-bottom:1.5rem}
+    .sidebar-tab{display:flex;align-items:center;gap:8px;padding:.625rem .875rem;border-radius:var(--radius-md);font-size:14px;cursor:pointer;color:var(--text2);border:none;background:none;font-family:inherit;text-align:left;width:100%}
+    .sidebar-tab:hover{background:var(--bg2)}
+    .sidebar-tab.on{background:var(--p50);color:var(--p600);font-weight:600}
+    .sidebar-stats{display:flex;flex-direction:column;gap:6px;margin-top:auto}
+    .sidebar-stat{background:var(--bg2);border-radius:var(--radius-md);padding:.625rem .875rem}
+    .sidebar-filter-section{margin-bottom:1rem}
+    .sidebar-filter-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem}
+    .sidebar-filter-list{display:flex;flex-direction:column;gap:3px}
+    .sf-item{padding:5px 10px;border-radius:var(--radius-md);font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;font-family:inherit;text-align:left;width:100%}
+    .sf-item:hover{background:var(--bg2)}
+    .sf-item.on{background:var(--p50);color:var(--p600);font-weight:500}
+    .sf-item.on-loc{background:var(--t50);color:var(--t600);font-weight:500}
+    .sidebar-settings-btn{margin-top:1rem;width:100%;padding:8px;border-radius:var(--radius-md);border:0.5px solid var(--border2);background:none;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit}
+    .sidebar-settings-btn:hover{background:var(--bg2)}
+    /* Hide mobile nav elements on desktop */
+    .topbar{display:none}
+    .tab-bar{display:none}
+    .filter-bar{display:none}
+    .sync-bar{display:none}
+  }
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:.875rem 1rem .5rem;position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:0.5px solid var(--border1)}
+  .topbar h1{font-size:17px;font-weight:600;color:var(--text1)}
+  .icon-btn{background:none;border:0.5px solid var(--border2);border-radius:var(--radius-md);padding:5px 10px;font-size:12px;cursor:pointer;color:var(--text2);font-family:inherit}
+  .icon-btn:active{background:var(--bg2)}
+  .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:.75rem 1rem}
+  @media(min-width:900px){.stats-row{display:none}}
+  .stat{background:var(--bg2);border-radius:var(--radius-md);padding:.6rem .875rem}
+  .stat-l{font-size:12px;color:var(--text2)}
+  .stat-v{font-size:20px;font-weight:600;color:var(--text1)}
+  .sync-bar{display:flex;align-items:center;gap:8px;padding:.5rem 1rem;background:var(--bg2);margin:0 1rem .5rem;border-radius:var(--radius-md);font-size:12px;color:var(--text2)}
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0}
+  .sync-dot.ok{background:#5BA06A}
+  .sync-dot.err{background:#D95555}
+  .tab-bar{display:flex;border-bottom:0.5px solid var(--border1);margin:0 1rem .75rem;gap:4px}
+  .tab{padding:.5rem 1rem;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-0.5px;font-family:inherit;background:none;border-top:none;border-left:none;border-right:none}
+  .tab.on{color:var(--p600);border-bottom-color:var(--p600);font-weight:600}
+  .filter-bar{display:flex;gap:6px;padding:0 1rem .5rem;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .filter-bar::-webkit-scrollbar{display:none}
+  .fsel{font-size:12px;padding:5px 12px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;white-space:nowrap;appearance:none;-webkit-appearance:none;font-family:inherit}
+  .fsel.active{background:var(--p600);color:#fff;border-color:var(--p600)}
+  .fsel.active-loc{background:var(--t600);color:#fff;border-color:var(--t600)}
+  .toolbar{display:flex;align-items:center;gap:6px;padding:0 1rem .5rem}
+  @media(min-width:900px){.toolbar{padding:.75rem 1.5rem .5rem}}
+  .toolbar select{font-size:12px;padding:4px 8px;border-radius:var(--radius-md);border:0.5px solid var(--border2);background:var(--bg2);color:var(--text1);font-family:inherit}
+  .count-lbl{font-size:12px;color:var(--text2);margin-left:auto}
+  .grid{padding:0 1rem;display:grid;gap:6px;grid-template-columns:repeat(3,minmax(0,1fr))}
+  @media(min-width:500px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  @media(min-width:900px){.grid{padding:0 1.5rem;gap:8px;grid-template-columns:repeat(6,minmax(0,1fr))}}
+  @media(min-width:1200px){.grid{grid-template-columns:repeat(8,minmax(0,1fr))}}
+  .card{background:var(--bg);border:0.5px solid var(--border1);border-radius:var(--radius-md);overflow:hidden;cursor:pointer}
+  .card:active{opacity:.8}
+  .card-img{width:100%;aspect-ratio:3/4;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:22px}
+  .card-img img{width:100%;height:100%;object-fit:cover}
+  .card-foot{padding:4px 5px 5px;display:flex;flex-direction:column;gap:2px}
+  .card-note{font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;min-height:13px}
+  .badge-row{display:flex;gap:2px;overflow:hidden}
+  .type-badge{font-size:9px;padding:1px 5px;border-radius:8px;background:var(--p50);color:var(--p800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
+  .loc-badge{font-size:9px;padding:1px 5px;border-radius:8px;background:var(--t50);color:var(--t800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:1;min-width:0}
+  .cdots{display:flex;gap:2px;flex-wrap:wrap;margin-top:1px}
+  .cdot{width:7px;height:7px;border-radius:50%;border:0.5px solid var(--border1);flex-shrink:0}
+  .empty{grid-column:1/-1;text-align:center;padding:3rem 1rem;font-size:14px;color:var(--text2)}
+  .fab-wrap{padding:1rem 1rem .5rem}
+  @media(min-width:900px){.fab-wrap{padding:1rem 1.5rem .5rem}}
+  .fab{width:100%;padding:13px;border-radius:var(--radius-lg);background:var(--p600);color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+  @media(min-width:900px){.fab{max-width:260px}}
+  .fab:active{transform:scale(.98);opacity:.9}
+
+  /* Sheets */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
+  .overlay.open{display:flex}
+  .sheet{background:var(--bg);border-radius:20px 20px 0 0;padding:1.25rem 1rem env(safe-area-inset-bottom,1.5rem);width:100%;max-height:92vh;overflow-y:auto}
+  @media(min-width:900px){
+    .overlay{align-items:center}
+    .sheet{border-radius:var(--radius-lg);max-width:560px;max-height:88vh}
+    .sheet-handle{display:none}
+  }
+  .sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto .875rem}
+  .sheet h2{font-size:16px;font-weight:600;color:var(--text1);margin-bottom:.875rem}
+  .lbl{font-size:12px;color:var(--text2);margin:.875rem 0 .375rem;display:block;font-weight:500}
+  .upload-area{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:1.5rem;text-align:center;cursor:pointer;background:var(--bg2);position:relative;min-height:100px;display:flex;align-items:center;justify-content:center}
+  .upload-area img{max-height:160px;border-radius:8px;object-fit:cover;max-width:100%}
+  .upload-hint{font-size:13px;color:var(--text2);margin-top:6px}
+  .upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+  .txt-input{width:100%;padding:10px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:14px;font-family:inherit;outline:none}
+  .txt-input:focus{border-color:var(--p600)}
+  .sgroup{border:0.5px solid var(--border1);border-radius:var(--radius-lg);padding:.75rem;margin-top:.375rem;background:var(--bg2)}
+  .tgrid{display:flex;flex-wrap:wrap;gap:6px}
+  .tp{padding:6px 12px;border-radius:20px;font-size:13px;cursor:pointer;border:0.5px solid var(--border2);background:var(--bg);color:var(--text2);font-family:inherit}
+  .tp:active{opacity:.7}
+  .tp.on{background:var(--p600);color:#fff;border-color:var(--p600)}
+  .tp.lon{background:var(--t600);color:#fff;border-color:var(--t600)}
+  .color-grid{display:flex;flex-wrap:wrap;gap:10px}
+  .color-item{display:flex;flex-direction:column;align-items:center;cursor:pointer;width:36px}
+  .cdotbig{width:30px;height:30px;border-radius:50%;border:2px solid transparent;position:relative;transition:border-color .15s}
+  .cdotbig.on{border-color:var(--text1)}
+  .cdotbig.on::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;text-shadow:0 0 3px rgba(0,0,0,.5)}
+  .color-label{font-size:9px;color:var(--text2);text-align:center;margin-top:3px;line-height:1.2}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn-row{display:flex;gap:8px;margin-top:1rem}
+  .bsave{flex:1;padding:12px;border-radius:var(--radius-md);background:var(--p600);color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+  .bcancel{padding:12px 16px;border-radius:var(--radius-md);background:var(--bg2);color:var(--text2);border:0.5px solid var(--border2);font-size:14px;cursor:pointer;font-family:inherit}
+  .bdel{padding:12px 16px;border-radius:var(--radius-md);background:#FCEBEB;color:#A32D2D;border:0.5px solid #F09595;font-size:14px;cursor:pointer;font-family:inherit}
+  .mpill{font-size:12px;padding:4px 10px;border-radius:20px}
+  .mpill-t{background:var(--p50);color:var(--p800)}
+  .mpill-l{background:var(--t50);color:var(--t800)}
+  .mpill-g{background:var(--bg2);color:var(--text2)}
+
+  /* Boards */
+  .board-list{padding:0 1rem}
+  @media(min-width:900px){.board-list{padding:0 1.5rem;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}}
+  .board-card{background:var(--bg);border:0.5px solid var(--border1);border-radius:var(--radius-lg);padding:.875rem 1rem;margin-bottom:.625rem;cursor:pointer}
+  @media(min-width:900px){.board-card{margin-bottom:0}}
+  .board-card:active{background:var(--bg2)}
+  .board-title{font-size:14px;font-weight:600;color:var(--text1)}
+  .board-meta{font-size:12px;color:var(--text2);margin-top:2px}
+  .board-thumbs{display:flex;gap:4px;margin-top:.625rem;flex-wrap:wrap}
+  .board-thumb{width:40px;height:40px;border-radius:6px;background:var(--bg2);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:16px;border:0.5px solid var(--border1)}
+  .board-thumb img{width:100%;height:100%;object-fit:cover}
+  .outfit-section{margin-bottom:1.25rem;padding:.875rem;background:var(--bg2);border-radius:var(--radius-lg)}
+  .outfit-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+  .outfit-title{font-size:13px;font-weight:600;color:var(--text1)}
+  .outfit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .outfit-slot{aspect-ratio:3/4;border-radius:var(--radius-md);background:var(--bg);border:0.5px solid var(--border2);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}
+  .outfit-slot img{width:100%;height:100%;object-fit:cover}
+  .slot-rm{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;font-family:inherit}
+  .slot-ph{font-size:11px;color:var(--text3);text-align:center;padding:4px}
+  .pick-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center}
+  .pick-overlay.open{display:flex}
+  .pick-sheet{background:var(--bg);border-radius:20px 20px 0 0;padding:1.25rem 1rem env(safe-area-inset-bottom,1.5rem);width:100%;max-height:88vh;overflow-y:auto}
+  .pick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .pick-card{border-radius:8px;overflow:hidden;cursor:pointer;border:2px solid transparent;position:relative}
+  .pick-card.picked{border-color:var(--p600)}
+  .pick-img{width:100%;aspect-ratio:3/4;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:16px}
+  .pick-img img{width:100%;height:100%;object-fit:cover}
+  .pick-check{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:var(--p600);display:none;align-items:center;justify-content:center;color:#fff;font-size:11px}
+  .pick-card.picked .pick-check{display:flex}
+
+  /* Settings */
+  .set-group{margin-bottom:1.25rem}
+  .set-group h3{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.06em}
+  .te-list{display:flex;flex-wrap:wrap;gap:5px}
+  .te-item{display:flex;align-items:center;gap:3px;padding:5px 8px 5px 12px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);font-size:13px;color:var(--text1)}
+  .te-del{background:none;border:none;cursor:pointer;color:var(--text2);font-size:14px;padding:0 2px;font-family:inherit}
+  .add-row{display:flex;gap:6px;margin-top:.625rem}
+  .add-row input{flex:1;padding:8px 12px;border-radius:var(--radius-md);border:0.5px solid var(--border2);background:var(--bg2);color:var(--text1);font-size:13px;font-family:inherit;outline:none}
+  .add-row input:focus{border-color:var(--p600)}
+  .add-row button{padding:8px 14px;border-radius:var(--radius-md);background:var(--p600);color:#fff;border:none;font-size:13px;cursor:pointer;font-family:inherit}
+
+  /* Sync */
+  .sync-info{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:1rem;padding:.75rem;background:var(--bg2);border-radius:var(--radius-md)}
+  code{font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar" id="desktopSidebar">
+  <div class="sidebar-title">Teri's Closet 👚</div>
+  <div class="sidebar-nav">
+    <button class="sidebar-tab on" data-stab="closet">衣櫥</button>
+    <button class="sidebar-tab" data-stab="boards">穿搭 Board</button>
+  </div>
+  <div id="sidebarFilters"></div>
+  <div class="sidebar-stats" id="sidebarStats"></div>
+  <div style="margin-top:1rem;border-top:0.5px solid var(--border1);padding-top:1rem">
+    <div class="sidebar-sync" id="sidebarSyncBtn">
+      <div class="sync-dot" id="sidebarSyncDot"></div>
+      <span id="sidebarSyncMsg">同步設定</span>
+    </div>
+    <button class="sidebar-settings-btn" id="settingsBtnDesktop">設定標籤</button>
+  </div>
+</aside>
+<div class="main-content">
+
+<div class="topbar">
+  <h1>Teri's Closet 👚</h1>
+  <button class="icon-btn" id="settingsBtn">設定標籤</button>
+</div>
+
+<div class="stats-row" id="statsRow"></div>
+
+<div class="sync-bar" id="syncBar">
+  <div class="sync-dot" id="syncDot"></div>
+  <span id="syncMsg">尚未設定 Google Sheets 同步</span>
+  <button class="icon-btn" id="syncSetupBtn" style="margin-left:auto;font-size:11px;padding:3px 8px">設定</button>
+</div>
+
+<div class="tab-bar">
+  <button class="tab on" data-tab="closet">衣櫥</button>
+  <button class="tab" data-tab="boards">穿搭 Board</button>
+</div>
+
+<div id="view-closet">
+  <div class="filter-bar" id="filterBar"></div>
+  <div class="toolbar">
+    <select id="sortSel"><option value="newest">最新加入</option><option value="type">類型</option><option value="loc">地點</option></select>
+    <span class="count-lbl" id="countLbl"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="fab-wrap"><button class="fab" id="addBtn">+ 新增衣服</button></div>
+</div>
+
+<div id="view-boards" style="display:none">
+  <div class="board-list" id="boardList"></div>
+  <div class="fab-wrap"><button class="fab" id="addBoardBtn">+ 新增穿搭 Board</button></div>
+</div>
+
+<!-- Add/Edit item sheet -->
+<div class="overlay" id="addOverlay">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <h2 id="sheetTitle">新增衣服</h2>
+  <div class="upload-area" id="uploadArea">
+    <div id="uploadPreview">
+      <div style="font-size:40px">📷</div>
+      <div class="upload-hint">點擊拍照或選圖片</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" capture="environment">
+  </div>
+  <div class="two-col" style="margin-top:.875rem">
+    <div><span class="lbl" style="margin-top:0">名稱備註</span><input type="text" class="txt-input" id="noteInput" placeholder="例：The Grind..."></div>
+    <div><span class="lbl" style="margin-top:0">洗護 / 其他</span><input type="text" class="txt-input" id="careInput" placeholder="例：手洗..."></div>
+  </div>
+  <span class="lbl">類型</span><div class="sgroup"><div class="tgrid" id="typeGrid"></div></div>
+  <span class="lbl">季節</span><div class="sgroup"><div class="tgrid" id="seasonGrid"></div></div>
+  <span class="lbl">場合</span><div class="sgroup"><div class="tgrid" id="occasionGrid"></div></div>
+  <span class="lbl">存放地點</span><div class="sgroup"><div class="tgrid" id="locGrid"></div></div>
+  <span class="lbl">顏色（可多選）</span><div class="sgroup"><div class="color-grid" id="colorGrid"></div></div>
+  <div class="btn-row">
+    <button class="bcancel" id="cancelBtn">取消</button>
+    <button class="bdel" id="deleteBtn" style="display:none">刪除</button>
+    <button class="bsave" id="saveBtn">儲存</button>
+  </div>
+</div>
+</div>
+
+<!-- Detail sheet -->
+<div class="overlay" id="detOverlay"><div class="sheet"><div class="sheet-handle"></div><div id="detSheet"></div></div></div>
+
+<!-- Settings sheet -->
+<div class="overlay" id="setOverlay">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <h2>設定標籤</h2>
+  <div id="setBody"></div>
+  <div class="btn-row"><button class="bcancel" id="setClose" style="flex:1">關閉</button></div>
+</div>
+</div>
+
+<!-- Sync setup sheet -->
+<div class="overlay" id="syncOverlay">
+<div class="sheet">
+  <div class="sheet-handle"></div>
+  <h2>Google Sheets 同步</h2>
+  <div class="sync-info">
+    貼上你的 Google Apps Script <code>Web App</code> 網址即可開啟同步。<br>
+    詳細設定步驟請參考附帶說明文件。
+  </div>
+  <span class="lbl" style="margin-top:0">Web App 網址</span>
+  <input type="text" class="txt-input" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/...">
+  <div id="syncTestResult" style="margin-top:.625rem;font-size:13px;min-height:20px"></div>
+  <div class="btn-row">
+    <button class="bcancel" id="syncCancelBtn">取消</button>
+    <button class="bsave" id="syncSaveBtn">儲存並測試</button>
+  </div>
+</div>
+</div>
+
+<!-- Board detail sheet -->
+<div class="overlay" id="boardOverlay"><div class="sheet"><div class="sheet-handle"></div><div id="boardSheet"></div></div></div>
+
+<!-- Item picker sheet -->
+<div class="pick-overlay" id="pickOverlay">
+<div class="pick-sheet">
+  <div class="sheet-handle"></div>
+  <h2 style="font-size:15px;margin-bottom:.75rem">選擇衣服</h2>
+  <div class="pick-grid" id="pickGrid"></div>
+  <div class="btn-row" style="margin-top:.875rem">
+    <button class="bcancel" id="pickCancel">取消</button>
+    <button class="bsave" id="pickDone">完成</button>
+  </div>
+</div>
+</div>
+
+<script>
+const COLORS=[
+  {n:'白',h:'#FFFFFF'},{n:'米',h:'#F0EAD6'},{n:'灰',h:'#9E9E9E'},{n:'黑',h:'#222222'},
+  {n:'咖啡',h:'#7B5B3A'},{n:'紅',h:'#D95555'},{n:'橘',h:'#E8854A'},{n:'黃',h:'#E8C84A'},
+  {n:'綠',h:'#5BA06A'},{n:'淺藍',h:'#7BB8E8'},{n:'深藍',h:'#1A3A6B'},{n:'紫',h:'#8A70D4'},
+  {n:'粉',h:'#F4A7C3'},{n:'彩色',h:'linear-gradient(135deg,#f87171,#fbbf24,#34d399,#60a5fa,#a78bfa)'},
+  {n:'花紋',h:'#c8b4e0'}
+];
+const DEF={
+  type:['上衣','T恤','襯衫','毛衣','外套','大衣','褲子','裙子','洋裝','連身褲','配件','包包','鞋子'],
+  season:['春秋','夏天','冬天','四季'],
+  occasion:['日常','上班','約會','音樂節','運動','正式','居家'],
+  loc:['自己家','工作室','媽媽家']
+};
+
+const LS={
+  get:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+
+let TAGS=LS.get('tc_tags')||{type:[...DEF.type],season:[...DEF.season],occasion:[...DEF.occasion],loc:[...DEF.loc]};
+let items=LS.get('tc_items')||[];
+let boards=LS.get('tc_boards')||[];
+let editId=null,pendingImg=null;
+let AF={type:'',season:'',occasion:'',loc:''};
+let scriptUrl=localStorage.getItem('tc_script_url')||'';
+let currentBoardId=null,currentOutfitIdx=null;
+
+const saveTags=()=>LS.set('tc_tags',TAGS);
+const saveItems=()=>LS.set('tc_items',items);
+const saveBoards=()=>LS.set('tc_boards',boards);
+
+// Google Sheets sync via Apps Script
+// Uses no-cors mode — Apps Script needs to return CORS headers
+async function syncSave(){
+  if(!scriptUrl)return;
+  try{
+    await fetch(scriptUrl,{
+      method:'POST',
+      mode:'no-cors',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'saveItems',items,boards})
+    });
+  }catch(e){console.warn('Sync failed',e)}
+}
+
+async function syncLoad(){
+  if(!scriptUrl)return;
+  try{
+    const r=await fetch(scriptUrl+'?action=getAll&t='+Date.now(),{mode:'cors'});
+    if(!r.ok)return;
+    const d=await r.json();
+    if(d.items){items=d.items;saveItems()}
+    if(d.boards){boards=d.boards;saveBoards()}
+    renderApp();
+  }catch(e){console.warn('Load sync failed',e)}
+}
+
+// Render
+function renderApp(){renderStats();renderFilterBar();renderGrid();renderSyncBar()}
+
+function renderStats(){
+  document.getElementById('statsRow').innerHTML=
+    `<div class="stat"><div class="stat-l">總件數</div><div class="stat-v">${items.length}</div></div>`+
+    `<div class="stat"><div class="stat-l">穿搭 Board</div><div class="stat-v">${boards.length}</div></div>`;
+}
+
+function renderSyncBar(){
+  document.getElementById('syncDot').className='sync-dot'+(scriptUrl?' ok':'');
+  document.getElementById('syncMsg').textContent=scriptUrl?'Google Sheets 同步已開啟':'尚未設定 Google Sheets 同步';
+}
+
+function renderFilterBar(){
+  const bar=document.getElementById('filterBar');
+  const cats=[{key:'type',label:'類型'},{key:'occasion',label:'場合'},{key:'loc',label:'地點'},{key:'season',label:'季節'}];
+  let html='';
+  cats.forEach(({key,label})=>{
+    const used=[...new Set(items.flatMap(i=>i.tags[key]||[]))];
+    if(!used.length)return;
+    const isLoc=key==='loc',av=AF[key];
+    html+=`<select class="fsel${av?(isLoc?' active-loc':' active'):''}" data-fkey="${key}"><option value="">${label}</option>`;
+    used.forEach(t=>html+=`<option value="${t}"${av===t?' selected':''}>${t}</option>`);
+    html+=`</select>`;
+  });
+  bar.innerHTML=html;
+  bar.querySelectorAll('.fsel').forEach(sel=>sel.onchange=()=>{AF[sel.dataset.fkey]=sel.value;renderFilterBar();renderGrid()});
+}
+
+function getFiltered(){
+  let r=[...items];
+  Object.entries(AF).forEach(([k,v])=>{if(v)r=r.filter(i=>(i.tags[k]||[]).includes(v))});
+  const s=document.getElementById('sortSel').value;
+  if(s==='newest')r.sort((a,b)=>b.id-a.id);
+  else if(s==='type')r.sort((a,b)=>(a.tags.type?.[0]||'').localeCompare(b.tags.type?.[0]||'','zh'));
+  else if(s==='loc')r.sort((a,b)=>(a.tags.loc?.[0]||'').localeCompare(b.tags.loc?.[0]||'','zh'));
+  return r;
+}
+
+function renderGrid(){
+  const filtered=getFiltered();
+  const grid=document.getElementById('grid');
+  document.getElementById('countLbl').textContent=`${filtered.length} 件`;
+  if(!filtered.length){
+    grid.innerHTML=`<div class="empty">${Object.values(AF).some(Boolean)?'沒有符合的衣服':'還沒有衣服，點下方按鈕開始！'}</div>`;
+    return;
+  }
+  grid.innerHTML=filtered.map(it=>{
+    const img=it.img?`<img src="${it.img}">`:'👕';
+    const dots=(it.colors||[]).map(c=>{const col=COLORS.find(x=>x.n===c)||{h:'#ccc'};return`<div class="cdot" style="background:${col.h}" title="${c}"></div>`}).join('');
+    return`<div class="card" data-id="${it.id}">
+      <div class="card-img">${img}</div>
+      <div class="card-foot">
+        <div class="card-note">${it.note||' '}</div>
+        ${(it.tags.type?.[0]||it.tags.loc?.[0])?`<div class="badge-row">${it.tags.type?.[0]?`<span class="type-badge">${it.tags.type[0]}</span>`:''}${it.tags.loc?.[0]?`<span class="loc-badge">${it.tags.loc[0]}</span>`:''}</div>`:''}
+        ${dots?`<div class="cdots">${dots}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  grid.querySelectorAll('.card').forEach(c=>c.onclick=()=>openDetail(parseInt(c.dataset.id)));
+}
+
+// Tag & color builders
+function buildTags(gridId,cat,sel,locStyle=false){
+  const el=document.getElementById(gridId);
+  el.innerHTML=TAGS[cat].map(t=>`<button class="tp${sel.includes(t)?(locStyle?' lon':' on'):''}" data-tag="${t}">${t}</button>`).join('');
+  el.querySelectorAll('.tp').forEach(p=>p.onclick=()=>p.classList.toggle(locStyle?'lon':'on'));
+}
+function buildColors(sel){
+  document.getElementById('colorGrid').innerHTML=COLORS.map(c=>`
+    <div class="color-item" data-color="${c.n}">
+      <div class="cdotbig${sel.includes(c.n)?' on':''}" style="background:${c.h};${c.n==='白'?'border:1.5px solid var(--border2)':''}"></div>
+      <div class="color-label">${c.n}</div>
+    </div>`).join('');
+  document.getElementById('colorGrid').querySelectorAll('.color-item').forEach(item=>item.onclick=()=>item.querySelector('.cdotbig').classList.toggle('on'));
+}
+function getSel(id){return[...document.getElementById(id).querySelectorAll('.on,.lon')].map(p=>p.dataset.tag)}
+function getSelColors(){return[...document.getElementById('colorGrid').querySelectorAll('.cdotbig.on')].map(d=>d.parentElement.dataset.color)}
+
+// Add / Edit
+function openAdd(){
+  editId=null;pendingImg=null;
+  document.getElementById('sheetTitle').textContent='新增衣服';
+  document.getElementById('deleteBtn').style.display='none';
+  document.getElementById('noteInput').value='';
+  document.getElementById('careInput').value='';
+  document.getElementById('uploadPreview').innerHTML='<div style="font-size:40px">📷</div><div class="upload-hint">點擊拍照或選圖片</div>';
+  buildTags('typeGrid','type',[]);buildTags('seasonGrid','season',[]);
+  buildTags('occasionGrid','occasion',[]);buildTags('locGrid','loc',[],true);
+  buildColors([]);
+  openOverlay('addOverlay');
+}
+function openEdit(id){
+  const it=items.find(x=>x.id===id);if(!it)return;
+  editId=id;pendingImg=it.img||null;
+  document.getElementById('sheetTitle').textContent='編輯衣服';
+  document.getElementById('deleteBtn').style.display='';
+  document.getElementById('noteInput').value=it.note||'';
+  document.getElementById('careInput').value=it.care||'';
+  document.getElementById('uploadPreview').innerHTML=it.img
+    ?`<img src="${it.img}" style="max-height:160px;border-radius:8px;object-fit:cover">`
+    :'<div style="font-size:40px">📷</div><div class="upload-hint">點擊換圖</div>';
+  buildTags('typeGrid','type',it.tags.type||[]);buildTags('seasonGrid','season',it.tags.season||[]);
+  buildTags('occasionGrid','occasion',it.tags.occasion||[]);buildTags('locGrid','loc',it.tags.loc||[],true);
+  buildColors(it.colors||[]);
+  openOverlay('addOverlay');
+}
+
+document.getElementById('addBtn').onclick=openAdd;
+document.getElementById('cancelBtn').onclick=()=>closeOverlay('addOverlay');
+document.getElementById('addOverlay').onclick=e=>{if(e.target===document.getElementById('addOverlay'))closeOverlay('addOverlay')};
+
+document.getElementById('fileInput').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    pendingImg=ev.target.result;
+    document.getElementById('uploadPreview').innerHTML=`<img src="${pendingImg}" style="max-height:160px;border-radius:8px;object-fit:cover">`;
+  };
+  r.readAsDataURL(f);
+};
+
+document.getElementById('saveBtn').onclick=()=>{
+  const tags={type:getSel('typeGrid'),season:getSel('seasonGrid'),occasion:getSel('occasionGrid'),loc:getSel('locGrid')};
+  const colors=getSelColors(),note=document.getElementById('noteInput').value.trim(),care=document.getElementById('careInput').value.trim();
+  if(editId!==null){
+    const idx=items.findIndex(x=>x.id===editId);
+    items[idx]={...items[idx],tags,colors,note,care,img:pendingImg};
+  } else {
+    items.push({id:Date.now(),tags,colors,note,care,img:pendingImg});
+  }
+  saveItems();syncSave();closeOverlay('addOverlay');renderApp();
+};
+
+document.getElementById('deleteBtn').onclick=()=>{
+  if(!confirm('確定刪除這件衣服？'))return;
+  items=items.filter(x=>x.id!==editId);
+  saveItems();syncSave();closeOverlay('addOverlay');renderApp();
+};
+
+// Detail
+function openDetail(id){
+  const it=items.find(x=>x.id===id);if(!it)return;
+  const imgHtml=it.img
+    ?`<img src="${it.img}" style="width:100%;max-height:260px;object-fit:contain;border-radius:var(--radius-lg);background:var(--bg2)">`
+    :`<div style="width:100%;height:140px;background:var(--bg2);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-size:52px">👕</div>`;
+  const allTags=[
+    ...(it.tags.type||[]).map(t=>`<span class="mpill mpill-t">${t}</span>`),
+    ...(it.tags.season||[]).map(t=>`<span class="mpill mpill-g">${t}</span>`),
+    ...(it.tags.occasion||[]).map(t=>`<span class="mpill mpill-g">${t}</span>`),
+    ...(it.tags.loc||[]).map(t=>`<span class="mpill mpill-l">${t}</span>`)
+  ].join('');
+  const colorRow=(it.colors||[]).map(c=>{
+    const col=COLORS.find(x=>x.n===c)||{h:'#ccc'};
+    return`<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--text2)"><span style="width:12px;height:12px;border-radius:50%;background:${col.h};border:0.5px solid var(--border1);display:inline-block"></span>${c}</span>`;
+  }).join('');
+  document.getElementById('detSheet').innerHTML=`${imgHtml}
+    ${it.note?`<div style="font-size:17px;font-weight:600;color:var(--text1);margin-top:.875rem">${it.note}</div>`:''}
+    ${allTags?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:.75rem">${allTags}</div>`:''}
+    ${colorRow?`<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:.625rem">${colorRow}</div>`:''}
+    ${it.care?`<div style="margin-top:.75rem;padding:.625rem .875rem;background:var(--bg2);border-radius:var(--radius-md);font-size:13px;color:var(--text2)">🧺 ${it.care}</div>`:''}
+    <div style="display:flex;gap:8px;margin-top:1.25rem">
+      <button class="bcancel" style="flex:1" id="detClose">關閉</button>
+      <button class="bsave" style="flex:1" id="detEdit">編輯</button>
+    </div>`;
+  document.getElementById('detClose').onclick=()=>closeOverlay('detOverlay');
+  document.getElementById('detEdit').onclick=()=>{closeOverlay('detOverlay');openEdit(id)};
+  openOverlay('detOverlay');
+}
+document.getElementById('detOverlay').onclick=e=>{if(e.target===document.getElementById('detOverlay'))closeOverlay('detOverlay')};
+
+// Settings
+function renderSettings(){
+  const cats=[
+    {key:'type',label:'類型',hint:'上衣、褲子...'},
+    {key:'season',label:'季節',hint:'夏天、冬天...'},
+    {key:'occasion',label:'場合',hint:'日常、音樂節...'},
+    {key:'loc',label:'存放地點',hint:'工作室、媽媽家...'}
+  ];
+  document.getElementById('setBody').innerHTML=cats.map(({key,label,hint})=>
+    `<div class="set-group"><h3>${label}</h3>
+    <div class="te-list">${TAGS[key].map(t=>`<div class="te-item">${t}<button class="te-del" data-key="${key}" data-tag="${t}">×</button></div>`).join('')}</div>
+    <div class="add-row"><input type="text" id="nt_${key}" placeholder="${hint}"><button data-addkey="${key}">新增</button></div>
+    </div>`).join('');
+  document.getElementById('setBody').querySelectorAll('.te-del').forEach(b=>b.onclick=()=>{
+    TAGS[b.dataset.key]=TAGS[b.dataset.key].filter(t=>t!==b.dataset.tag);saveTags();renderSettings();
+  });
+  document.getElementById('setBody').querySelectorAll('[data-addkey]').forEach(b=>b.onclick=()=>{
+    const key=b.dataset.addkey,inp=document.getElementById(`nt_${key}`),val=inp.value.trim();
+    if(!val||TAGS[key].includes(val))return;
+    TAGS[key].push(val);saveTags();inp.value='';renderSettings();
+  });
+}
+document.getElementById('settingsBtn').onclick=()=>{renderSettings();openOverlay('setOverlay')};
+document.getElementById('setClose').onclick=()=>closeOverlay('setOverlay');
+document.getElementById('setOverlay').onclick=e=>{if(e.target===document.getElementById('setOverlay'))closeOverlay('setOverlay')};
+
+// Sync setup
+document.getElementById('syncSetupBtn').onclick=()=>{
+  document.getElementById('scriptUrlInput').value=scriptUrl;
+  document.getElementById('syncTestResult').textContent='';
+  openOverlay('syncOverlay');
+};
+document.getElementById('syncCancelBtn').onclick=()=>closeOverlay('syncOverlay');
+document.getElementById('syncOverlay').onclick=e=>{if(e.target===document.getElementById('syncOverlay'))closeOverlay('syncOverlay')};
+document.getElementById('syncSaveBtn').onclick=async()=>{
+  const url=document.getElementById('scriptUrlInput').value.trim();
+  const res=document.getElementById('syncTestResult');
+  if(!url){res.textContent='請輸入網址';return}
+  res.style.color='var(--text2)';res.textContent='測試連線中...';
+  try{
+    const r=await fetch(`${url}?action=ping&t=${Date.now()}`,{mode:'cors'});
+    const t=await r.text();
+    if(t.includes('pong')){
+      scriptUrl=url;localStorage.setItem('tc_script_url',url);
+      res.style.color='#5BA06A';res.textContent='✓ 連線成功！正在同步資料...';
+      renderSyncBar();
+      await syncLoad();
+      setTimeout(()=>closeOverlay('syncOverlay'),800);
+    } else {
+      res.style.color='#D95555';res.textContent='連線失敗，請確認網址正確';
+    }
+  } catch(e){
+    res.style.color='#D95555';res.textContent='連線失敗：請確認 Apps Script 已部署且權限設為「所有登入者」';
+  }
+};
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.getElementById('view-closet').style.display=t.dataset.tab==='closet'?'':'none';
+    document.getElementById('view-boards').style.display=t.dataset.tab==='boards'?'':'none';
+    if(t.dataset.tab==='boards')renderBoardList();
+  };
+});
+
+// Boards
+function renderBoardList(){
+  const el=document.getElementById('boardList');
+  if(!boards.length){el.innerHTML=`<div class="empty">還沒有穿搭 Board</div>`;return}
+  el.innerHTML=boards.map(b=>{
+    const thumbIds=b.outfits.flatMap(o=>o.itemIds).slice(0,8);
+    const thumbs=thumbIds.map(id=>{
+      const it=items.find(x=>x.id===id);
+      return`<div class="board-thumb">${it?.img?`<img src="${it.img}">`:'👕'}</div>`;
+    }).join('');
+    return`<div class="board-card" data-bid="${b.id}">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div class="board-title">${b.name}</div><div class="board-meta">${b.outfits.length} 套搭配</div></div>
+      </div>
+      ${thumbs?`<div class="board-thumbs">${thumbs}</div>`:''}
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.board-card').forEach(c=>c.onclick=()=>openBoard(parseInt(c.dataset.bid)));
+}
+
+document.getElementById('addBoardBtn').onclick=()=>{
+  const name=prompt('Board 名稱？（例：EDC 2026）');
+  if(!name||!name.trim())return;
+  boards.push({id:Date.now(),name:name.trim(),outfits:[]});
+  saveBoards();syncSave();renderBoardList();renderStats();
+};
+
+function openBoard(bid){
+  const board=boards.find(b=>b.id===bid);if(!board)return;
+  currentBoardId=bid;
+  renderBoardSheet(board);
+  openOverlay('boardOverlay');
+}
+document.getElementById('boardOverlay').onclick=e=>{if(e.target===document.getElementById('boardOverlay')){closeOverlay('boardOverlay');renderBoardList()}};
+
+function renderBoardSheet(board){
+  const outfitsHtml=board.outfits.map((o,oi)=>{
+    const slots=o.itemIds.map((id,si)=>{
+      const it=items.find(x=>x.id===id);
+      return`<div class="outfit-slot">${it?.img?`<img src="${it.img}">`:'<span style="font-size:20px">👕</span>'}<button class="slot-rm" data-oi="${oi}" data-si="${si}">×</button></div>`;
+    });
+    return`<div class="outfit-section">
+      <div class="outfit-header">
+        <span class="outfit-title">搭配 ${oi+1}</span>
+        <button class="icon-btn" data-del-oi="${oi}">刪除</button>
+      </div>
+      <div class="outfit-grid">${slots.join('')}<div class="outfit-slot" data-add-oi="${oi}"><div class="slot-ph">＋<br>加衣服</div></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('boardSheet').innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:.875rem">
+      <h2 style="flex:1;font-size:16px;font-weight:600">${board.name}</h2>
+      <button class="icon-btn" id="boardDelBtn" style="color:#A32D2D;border-color:#F09595">刪除 Board</button>
+      <button class="icon-btn" id="boardCloseBtn">關閉</button>
+    </div>
+    ${outfitsHtml}
+    <button class="fab" id="addOutfitBtn">+ 新增一套搭配</button>`;
+
+  document.getElementById('boardCloseBtn').onclick=()=>{closeOverlay('boardOverlay');renderBoardList()};
+  document.getElementById('boardDelBtn').onclick=()=>{
+    if(!confirm(`確定刪除「${board.name}」？`))return;
+    boards=boards.filter(b=>b.id!==currentBoardId);
+    saveBoards();syncSave();closeOverlay('boardOverlay');renderBoardList();renderStats();
+  };
+  document.getElementById('addOutfitBtn').onclick=()=>{
+    board.outfits.push({itemIds:[]});saveBoards();renderBoardSheet(board);
+  };
+  document.getElementById('boardSheet').querySelectorAll('[data-add-oi]').forEach(el=>{
+    el.onclick=()=>{currentOutfitIdx=parseInt(el.dataset.addOi);openItemPicker(board.outfits[currentOutfitIdx].itemIds)};
+  });
+  document.getElementById('boardSheet').querySelectorAll('[data-del-oi]').forEach(el=>{
+    el.onclick=()=>{board.outfits.splice(parseInt(el.dataset.delOi),1);saveBoards();renderBoardSheet(board)};
+  });
+  document.getElementById('boardSheet').querySelectorAll('.slot-rm').forEach(el=>{
+    el.onclick=e=>{
+      e.stopPropagation();
+      board.outfits[parseInt(el.dataset.oi)].itemIds.splice(parseInt(el.dataset.si),1);
+      saveBoards();renderBoardSheet(board);
+    };
+  });
+}
+
+function openItemPicker(currentIds){
+  const pg=document.getElementById('pickGrid');
+  pg.innerHTML=items.map(it=>`
+    <div class="pick-card${currentIds.includes(it.id)?' picked':''}" data-id="${it.id}">
+      <div class="pick-img">${it.img?`<img src="${it.img}">`:'👕'}</div>
+      <div class="pick-check">✓</div>
+    </div>`).join('');
+  pg.querySelectorAll('.pick-card').forEach(c=>c.onclick=()=>c.classList.toggle('picked'));
+  document.getElementById('pickOverlay').classList.add('open');
+}
+document.getElementById('pickCancel').onclick=()=>document.getElementById('pickOverlay').classList.remove('open');
+document.getElementById('pickDone').onclick=()=>{
+  const picked=[...document.getElementById('pickGrid').querySelectorAll('.pick-card.picked')].map(c=>parseInt(c.dataset.id));
+  const board=boards.find(x=>x.id===currentBoardId);
+  board.outfits[currentOutfitIdx].itemIds=picked;
+  saveBoards();syncSave();
+  document.getElementById('pickOverlay').classList.remove('open');
+  renderBoardSheet(board);
+};
+document.getElementById('pickOverlay').onclick=e=>{if(e.target===document.getElementById('pickOverlay'))document.getElementById('pickOverlay').classList.remove('open')};
+
+// Overlay helpers
+function openOverlay(id){document.getElementById(id).classList.add('open')}
+function closeOverlay(id){document.getElementById(id).classList.remove('open')}
+
+document.getElementById('sortSel').onchange=renderGrid;
+
+// Sidebar
+function renderSidebar(){
+  const ss=document.getElementById('sidebarStats');
+  if(ss)ss.innerHTML=
+    `<div class="sidebar-stat"><div class="stat-l">總件數</div><div class="stat-v">${items.length}</div></div>`+
+    `<div class="sidebar-stat" style="margin-top:6px"><div class="stat-l">穿搭 Board</div><div class="stat-v">${boards.length}</div></div>`;
+  const sd=document.getElementById('sidebarSyncDot');
+  const sm=document.getElementById('sidebarSyncMsg');
+  if(sd)sd.className='sync-dot'+(scriptUrl?' ok':'');
+  if(sm)sm.textContent=scriptUrl?'已連線 Google Sheets':'同步設定';
+  const sf=document.getElementById('sidebarFilters');
+  if(!sf)return;
+  const cats=[{key:'type',label:'類型'},{key:'occasion',label:'場合'},{key:'loc',label:'地點'},{key:'season',label:'季節'}];
+  let html='';
+  cats.forEach(({key,label})=>{
+    const used=[...new Set(items.flatMap(i=>i.tags[key]||[]))];
+    if(!used.length)return;
+    const isLoc=key==='loc';
+    html+=`<div class="sidebar-filter-section"><div class="sidebar-filter-label">${label}</div><div class="sidebar-filter-list">`;
+    used.forEach(t=>{
+      const on=AF[key]===t;
+      html+=`<button class="sf-item${on?(isLoc?' on-loc':' on'):''}" data-sfkey="${key}" data-sftag="${t}">${t}</button>`;
+    });
+    html+=`</div></div>`;
+  });
+  sf.innerHTML=html;
+  sf.querySelectorAll('.sf-item').forEach(b=>b.onclick=()=>{
+    AF[b.dataset.sfkey]=AF[b.dataset.sfkey]===b.dataset.sftag?'':b.dataset.sftag;
+    renderFilterBar();renderGrid();renderSidebar();
+  });
+}
+
+document.querySelectorAll('.sidebar-tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.sidebar-tab').forEach(x=>x.classList.remove('on'));
+    t.classList.add('on');
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.dataset.tab===t.dataset.stab));
+    document.getElementById('view-closet').style.display=t.dataset.stab==='closet'?'':'none';
+    document.getElementById('view-boards').style.display=t.dataset.stab==='boards'?'':'none';
+    if(t.dataset.stab==='boards')renderBoardList();
+  };
+});
+
+const _sidebarSyncBtn=document.getElementById('sidebarSyncBtn');
+if(_sidebarSyncBtn)_sidebarSyncBtn.onclick=()=>{document.getElementById('scriptUrlInput').value=scriptUrl;document.getElementById('syncTestResult').textContent='';openOverlay('syncOverlay')};
+const _settingsBtnDesktop=document.getElementById('settingsBtnDesktop');
+if(_settingsBtnDesktop)_settingsBtnDesktop.onclick=()=>{renderSettings();openOverlay('setOverlay')};
+
+// Init
+renderApp();
+renderSidebar();
+if(scriptUrl)syncLoad();
+</script>
+</div>
+</div>
+</body>
+</html>
