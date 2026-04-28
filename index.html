@@ -349,28 +349,58 @@ const saveTags=()=>LS.set('tc_tags',TAGS);
 const saveItems=()=>LS.set('tc_items',items);
 const saveBoards=()=>LS.set('tc_boards',boards);
 
-// Google Sheets sync — uses GET with data param to avoid CORS issues
-async function syncSave(){
-  if(!scriptUrl)return;
-  try{
-    const data=encodeURIComponent(JSON.stringify({items,boards}));
-    // Use an image src trick to fire a GET request without CORS restrictions
-    const img=new Image();
-    img.src=scriptUrl+'?action=save&data='+data+'&t='+Date.now();
-  }catch(e){console.warn('Sync save failed',e)}
+// ── Cloudinary config ──────────────────────────────────────
+const CLOUD_NAME = 'dlmdbvvro';
+const UPLOAD_PRESET = 'teri_closet';
+
+async function uploadToCloudinary(base64DataUrl) {
+  if (!base64DataUrl || base64DataUrl.startsWith('http')) return base64DataUrl;
+  try {
+    const blob = await (await fetch(base64DataUrl)).blob();
+    const fd = new FormData();
+    fd.append('file', blob);
+    fd.append('upload_preset', UPLOAD_PRESET);
+    const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
+      method: 'POST', body: fd
+    });
+    const j = await r.json();
+    // Return a compressed URL (w_800 is enough for a wardrobe app)
+    return j.secure_url.replace('/upload/', '/upload/w_800,q_auto,f_auto/');
+  } catch(e) {
+    console.warn('Cloudinary upload failed', e);
+    return base64DataUrl; // fallback to local
+  }
 }
 
-async function syncLoad(){
-  if(!scriptUrl)return;
-  try{
-    const r=await fetch(scriptUrl+'?action=load&t='+Date.now());
-    if(!r.ok)return;
-    const text=await r.text();
-    const d=JSON.parse(text);
-    if(d.items&&Array.isArray(d.items)){items=d.items;saveItems()}
-    if(d.boards&&Array.isArray(d.boards)){boards=d.boards;saveBoards()}
-    renderApp();renderSidebar();
-  }catch(e){console.warn('Sync load failed',e)}
+// ── Google Sheets sync ──────────────────────────────────────
+async function syncSave() {
+  if (!scriptUrl) return;
+  try {
+    // Strip base64 images before saving — only save cloudinary URLs
+    const safeItems = items.map(it => ({
+      ...it,
+      img: (it.img && it.img.startsWith('http')) ? it.img : ''
+    }));
+    const safeBoards = boards;
+    const payload = JSON.stringify({ items: safeItems, boards: safeBoards });
+    await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: payload
+    });
+  } catch(e) { console.warn('Sync save failed', e) }
+}
+
+async function syncLoad() {
+  if (!scriptUrl) return;
+  try {
+    const r = await fetch(scriptUrl + '?action=load&t=' + Date.now());
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.items && Array.isArray(d.items)) { items = d.items; saveItems(); }
+    if (d.boards && Array.isArray(d.boards)) { boards = d.boards; saveBoards(); }
+    renderApp(); renderSidebar();
+  } catch(e) { console.warn('Sync load failed', e) }
 }
 
 // Render
@@ -496,16 +526,24 @@ document.getElementById('fileInput').onchange=e=>{
   r.readAsDataURL(f);
 };
 
-document.getElementById('saveBtn').onclick=()=>{
-  const tags={type:getSel('typeGrid'),season:getSel('seasonGrid'),occasion:getSel('occasionGrid'),loc:getSel('locGrid')};
-  const colors=getSelColors(),note=document.getElementById('noteInput').value.trim(),care=document.getElementById('careInput').value.trim();
-  if(editId!==null){
-    const idx=items.findIndex(x=>x.id===editId);
-    items[idx]={...items[idx],tags,colors,note,care,img:pendingImg};
-  } else {
-    items.push({id:Date.now(),tags,colors,note,care,img:pendingImg});
+document.getElementById('saveBtn').onclick=async()=>{
+  const btn=document.getElementById('saveBtn');
+  btn.textContent='上傳中...';btn.disabled=true;
+  try{
+    const tags={type:getSel('typeGrid'),season:getSel('seasonGrid'),occasion:getSel('occasionGrid'),loc:getSel('locGrid')};
+    const colors=getSelColors(),note=document.getElementById('noteInput').value.trim(),care=document.getElementById('careInput').value.trim();
+    // Upload image to Cloudinary if it's a fresh base64
+    const imgUrl = pendingImg ? await uploadToCloudinary(pendingImg) : (editId!==null ? items.find(x=>x.id===editId)?.img||'' : '');
+    if(editId!==null){
+      const idx=items.findIndex(x=>x.id===editId);
+      items[idx]={...items[idx],tags,colors,note,care,img:imgUrl};
+    } else {
+      items.push({id:Date.now(),tags,colors,note,care,img:imgUrl});
+    }
+    saveItems();await syncSave();closeOverlay('addOverlay');renderApp();renderSidebar();
+  }finally{
+    btn.textContent='儲存';btn.disabled=false;
   }
-  saveItems();syncSave();closeOverlay('addOverlay');renderApp();
 };
 
 document.getElementById('deleteBtn').onclick=()=>{
